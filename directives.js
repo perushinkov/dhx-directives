@@ -3,12 +3,12 @@
  * Created by Emanuil on 19/02/2016.
  */
 angular.module('dhxDirectives', []);
-;"use strict";
+//"use strict";
 /**
  * Created by Emanuil on 09/02/2016.
  */
 angular.module('dhxDirectives')
-  .directive('dhxChart', function factory() {
+  .directive('dhxChart', function factory(DhxUtils) {
     return {
       restrict: 'E',
       require: 'dhxChart',
@@ -33,7 +33,7 @@ angular.module('dhxDirectives')
         //dhxLegend: '='
         dhxPieInnerText: '@'
       },
-      link: function (scope, element, attrs) {
+      link: function (scope, element) {
         //$('<div></div>').appendTo(element[0]);
         var rootElem = element;//.children().first();
         rootElem.css('width', scope.dhxChartWidth);
@@ -65,14 +65,17 @@ angular.module('dhxDirectives')
         //scope.dhxLegend ? descriptor.legend = scope.dhxLegend : '';
         //scope.dhxWidth ? descriptor.width = scope.dhxWidth : '';
 
+        //noinspection JSPotentiallyInvalidConstructorUsage
         var chart = new dhtmlXChart(descriptor);
         chart.parse(scope.dhxData, 'json');
+
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, chart);
       }
     };
   });
 
 
-;"use strict";
+//"use strict";
 /**
  * Created by Emanuil on 01/02/2016.
  *
@@ -137,8 +140,8 @@ angular.module('dhxDirectives')
         dhxHandlers: '=',
         dhxVersionId: '='
       },
-      compile: function compile(tElement, tAttrs, transclude) {
-        return function (scope, element, attrs) {
+      compile: function compile(/*tElement, tAttrs, transclude*/) {
+        return function (scope, element/*, attrs*/) {
           var loadStructure = function () {
             $(element).empty();
             $('<div></div>').appendTo(element[0]);
@@ -188,16 +191,18 @@ angular.module('dhxDirectives')
             if (scope.dhxOnDataLoaded) {
               scope.dhxOnDataLoaded(grid);
             }
+
+            DhxUtils.dhxUnloadOnScopeDestroy(scope, grid);
           };
-          scope.$watch('dhxVersionId', function (newVal, oldVal) {
+          scope.$watch('dhxVersionId', function (/*newVal, oldVal*/) {
             console.log('rebuilding...');
             loadStructure();
           });
         }
       }
     };
-  })
-;"use strict";
+  });
+//"use strict";
 /**
  * Created by Emanuil on 25/01/2016.
  *
@@ -208,7 +213,7 @@ angular.module('dhxDirectives')
  * http://docs.dhtmlx.com/layout__init.html
  */
 angular.module('dhxDirectives')
-  .directive('dhxLayout', function factory() {
+  .directive('dhxLayout', function factory(DhxUtils) {
     var letters = "abcdefg";
     return {
       restrict: 'E',
@@ -274,6 +279,8 @@ angular.module('dhxDirectives')
         for (var i = 0; i < scope.panes.length; i++) {
           layout.cells(letters[i]).appendObject(scope.panes[i].jqElem[0]);
         }
+
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, layout);
       }
     };
   })
@@ -308,12 +315,18 @@ angular.module('dhxDirectives')
       }
     };
   });
-;"use strict";
+//"use strict";
 /**
  * Created by Emanuil on 09/02/2016.
  */
 angular.module('dhxDirectives')
-  .directive('dhxMessage', function factory() {
+  .directive('dhxMessage', function factory(DhxUtils) {
+    var nextMsgId = (function () {
+      var _internalCounter = DhxUtils.createCounter();
+      return function () {
+        return 'msg_' + _internalCounter();
+      };
+    })();
     return {
       restrict: 'E',
       require: 'dhxMessage',
@@ -322,7 +335,6 @@ angular.module('dhxDirectives')
       scope: {
         // shared props for notifications, confirms and alerts
         dhxInvoker: '=',
-        dhxId: '@',
         dhxText: '@',
         /**
          * alert, alert-warning, alert-error,
@@ -342,13 +354,13 @@ angular.module('dhxDirectives')
         // Just for Confirm
         dhxCancel: '@'
       },
-      link: function (scope, element, attrs) {
+      link: function (scope/*, element, attrs*/) {
         scope.dhxInvoker = function () {
           var instObj = {};
 
           // Not bothering with checks. Relying on the user providing just the data that's
           // needed for the message type
-          scope.dhxId !== undefined ? instObj.id = scope.dhxId : '';
+          instObj.id = nextMsgId();
           scope.dhxText !== undefined ? instObj.text = scope.dhxText : '';
           scope.dhxType !== undefined ? instObj.type = scope.dhxType : '';
           scope.dhxExpire !== undefined ? instObj.expire = scope.dhxExpire : '';
@@ -364,22 +376,28 @@ angular.module('dhxDirectives')
               scope.dhxCallback(data);
             };
           }
-
           dhtmlx.message(instObj);
+
+          scope.$on(
+            "$destroy",
+            function (/*event*/) {
+              dhtmlx.message.hide(instObj.id);
+            }
+          );
         };
       }
     };
   });
 
 
-;"use strict";
+//"use strict";
 /**
  * Created by Emanuil on 08/02/2016.
  *
  * TODO: Currently dhxPopup targets parent. Add more ways of doing this.
  */
 angular.module('dhxDirectives')
-  .directive('dhxPopup', function factory() {
+  .directive('dhxPopup', function factory(DhxUtils) {
     return {
       restrict: 'E',
       require: 'dhxPopup',
@@ -415,13 +433,15 @@ angular.module('dhxDirectives')
             popup.hide();
         };
         popup.attachObject(child[0]);
-        scope.dhxShow ? popup.show() : popup.hide()
+        scope.dhxShow ? popup.show() : popup.hide();
         scope.$watch('dhxShow', renderPopup);
         scope.$watch('dhxRefresh', renderPopup);
+
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, popup);
       }
     };
   });
-;"use strict";
+//"use strict";
 /**
  * Created by Emanuil on 18/02/2016.
  */
@@ -471,6 +491,7 @@ angular.module('dhxDirectives')
           tabInfo.selected ? tabbar.tabs(tabInfo.id).setActive() : '';
         });
 
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, tabbar);
       }
     };
   })
@@ -493,7 +514,7 @@ angular.module('dhxDirectives')
       }
     };
   });
-;"use strict";
+//"use strict";
 /**
  * Created by Emanuil on 29/01/2016.
  *
@@ -579,10 +600,145 @@ angular.module('dhxDirectives')
         if (scope.dhxOnDataLoaded) {
           scope.dhxOnDataLoaded(tree);
         }
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, tree);
       }
     };
   });
-;"use strict";
+//"use strict";
+/**
+ * Created by Emanuil on 18/02/2016.
+ */
+angular.module('dhxDirectives')
+  .directive('dhxWindows', function factory(DhxUtils) {
+    var nextWindowsId = DhxUtils.createCounter();
+    return {
+      restrict: 'E',
+      require: 'dhxWindows',
+      controller: function (/*$scope*/) {
+        var _windowInfos = [];
+        var _container = document.documentElement;
+
+        var _winsId = nextWindowsId();
+        var _idPerWin = DhxUtils.createCounter();
+
+        this.getNextWindowId = function () {
+          return "wins_" + _winsId + "_" + _idPerWin();
+        };
+
+        this.registerWindow = function (windowInfo) {
+          _windowInfos.push(windowInfo);
+        };
+
+        this.setContainer = function (container) {
+          _container = container;
+        };
+
+        this.getContainer = function () {
+          return _container;
+        };
+
+        this.getWindowInfos = function () {
+          return _windowInfos;
+        }
+      },
+      scope: {
+      },
+      link: function (scope, element, attrs, windowsCtrl) {
+        //noinspection JSPotentiallyInvalidConstructorUsage
+        var windows = new dhtmlXWindows();
+        windows.attachViewportTo(windowsCtrl.getContainer());
+
+        windowsCtrl
+          .getWindowInfos()
+          .forEach(function (windowInfo) {
+            var conf = windowInfo.config;
+            DhxUtils.removeUndefinedProps(conf);
+            var win = windows.createWindow(
+              windowsCtrl.getNextWindowId(),
+              conf.left,
+              conf.top,
+              conf.width,
+              conf.height
+            );
+            conf.center !== undefined ? (conf.center ? win.center() : '') : '';
+            conf.keep_in_viewport !== undefined ? win.keepInViewport(!!conf.keep_in_viewport) : '';
+            conf.showInnerScroll !== undefined ?  (conf.showInnerScroll ? win.showInnerScroll() : '') : '';
+            conf.move !== undefined ? win[(conf.move ? 'allow' : 'deny') + 'Move']() : '';
+            conf.park !== undefined ? win[(conf.park ? 'allow' : 'deny') + 'Park']() : '';
+            conf.resize !== undefined ? win[(conf.resize ? 'allow' : 'deny') + 'Resize']() : '';
+            conf.text !== undefined ? win.setText(conf.text) : '';
+
+            conf.btnClose !== undefined ? win.button('close')[conf.btnClose ? 'show' : 'hide']() : '';
+            conf.btnMinmax !== undefined ? win.button('minmax')[conf.btnMinmax ? 'show' : 'hide']() : '';
+            conf.btnPark !== undefined ? win.button('park')[conf.btnPark ? 'show' : 'hide']() : '';
+            conf.btnStick !== undefined ? win.button('stick')[conf.btnStick ? 'show' : 'hide']() : '';
+            conf.btnHelp !== undefined ? win.button('help')[conf.btnHelp ? 'show' : 'hide']() : '';
+
+            var domElem = windowInfo.elem[0];
+            win.attachObject(domElem);
+          });
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, windows);
+      }
+    };
+  })
+  .directive('dhxWindow', function factory() {
+    return {
+      restrict: 'E',
+      require: '^dhxWindows',
+      scope: {
+        dhxCenter: '=',
+        dhxHeight: '=',
+        dhxKeepInViewport: '=',
+        dhxShowInnerScroll: '=',
+        dhxLeft: '=',
+        dhxMove: '=',
+        dhxPark: '=',
+        dhxResize: '=',
+        dhxText: '@',
+        dhxTop: '=',
+        dhxWidth: '=',
+        dhxBtnClose: '=',
+        dhxBtnMinmax: '=',
+        dhxBtnPark: '=',
+        dhxBtnStick: '=',
+        dhxBtnHelp: '='
+      },
+      link: function (scope, element, attrs, windowsCtrl) {
+        windowsCtrl.registerWindow({
+          elem: element.detach(),
+          config: {
+            center: scope.dhxCenter,
+            height: scope.dhxHeight,
+            keep_in_viewport: scope.dhxKeepInViewport,
+            showInnerScroll: scope.dhxShowInnerScroll,
+            left: scope.dhxLeft,
+            move: scope.dhxMove,
+            park: scope.dhxPark,
+            resize: scope.dhxResize,
+            text: scope.dhxText,
+            top: scope.dhxTop,
+            width: scope.dhxWidth,
+            btnClose : scope.dhxBtnClose,
+            btnMinmax: scope.dhxBtnMinmax,
+            btnPark: scope.dhxBtnPark,
+            btnStick: scope.dhxBtnStick,
+            btnHelp: scope.dhxBtnHelp
+          }
+        });
+      }
+    };
+  })
+  .directive('dhxWindowContainer', function factory() {
+    return {
+      restrict: 'E',
+      require: '^dhxWindows',
+      scope: {},
+      link: function (scope, element, attrs, windowsCtrl) {
+        windowsCtrl.setContainer(element[0]);
+      }
+    };
+  });
+//"use strict";
 /**
  * Created by Emanuil on 01/02/2016.
  */
@@ -605,10 +761,6 @@ angular.module('dhxDirectives')
       return _imgPath;
     };
 
-    var setImagePath = function (imgPath) {
-      _imgPath = imgPath;
-    };
-
     /**
      * I hope to never resort to using that
      */
@@ -620,10 +772,40 @@ angular.module('dhxDirectives')
       };
     };
 
+    var removeUndefinedProps = function(obj) {
+      for (var prop in obj) {
+        if (obj.hasOwnProperty(prop) && obj[prop] === undefined) {
+          delete obj[prop];
+        }
+      }
+    };
+
+    var dhxUnloadOnScopeDestroy = function (scope, dhxObj) {
+      var destructorName =
+        'destructor' in dhxObj
+          ? 'destructor'
+          :
+          ('unload' in dhxObj
+            ? 'unload'
+            : null);
+      if (destructorName === null) {
+        console.error('Dhtmlx object does not have a destructor or unload method! Failed to register with scope destructor!');
+        return;
+      }
+
+      scope.$on(
+        "$destroy",
+        function (/*event*/) {
+          dhxObj[destructorName]();
+        }
+      );
+    };
+
     return {
       attachDhxHandlers: attachDhxHandlers,
       getImagePath: getImagePath,
-      setImagePath: setImagePath,
-      createCounter: createCounter
+      createCounter: createCounter,
+      removeUndefinedProps: removeUndefinedProps,
+      dhxUnloadOnScopeDestroy: dhxUnloadOnScopeDestroy
     };
   }]);
