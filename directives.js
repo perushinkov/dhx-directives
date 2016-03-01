@@ -31,6 +31,7 @@ angular.module('dhxDirectives')
         //dhxYAxis: '=',
         //dhxSeries: '=',
         //dhxLegend: '='
+        dhxHandlers: '=',
         dhxPieInnerText: '@'
       },
       link: function (scope, element) {
@@ -67,8 +68,9 @@ angular.module('dhxDirectives')
 
         //noinspection JSPotentiallyInvalidConstructorUsage
         var chart = new dhtmlXChart(descriptor);
-        chart.parse(scope.dhxData, 'json');
 
+        DhxUtils.attachDhxHandlers(chart, scope.dhxHandlers);
+        chart.parse(scope.dhxData, 'json');
         DhxUtils.dhxUnloadOnScopeDestroy(scope, chart);
       }
     };
@@ -78,6 +80,10 @@ angular.module('dhxDirectives')
 //"use strict";
 /**
  * Created by Emanuil on 24/02/2016.
+ *
+ * Links:
+ *   for validate properties:
+ *   http://docs.dhtmlx.com/form__validation.html#validation
  */
 (function () {
   var linkFn = function (scope, element/*, json*/) {
@@ -148,6 +154,8 @@ angular.module('dhxDirectives')
         element.empty();
         var div = $('<div></div>').appendTo(element[0]);
         var form = new dhtmlXForm(div[0], data);
+        form.enableLiveValidation(true);
+        form.validate();
         scope.dhxObj ? scope.dhxObj = form : '';
         DhxUtils.attachDhxHandlers(form, scope.dhxHandlers);
 
@@ -693,7 +701,8 @@ angular.module('dhxDirectives')
         dhxLayoutCode: "@",
         dhxWidth: "=", // Optional... Default is 100%. If set, use ems or pixels.
         dhxHeight: "=", // Mandatory.
-        dhxUseEms: "=" // Optional... If width and height is in ems. Px is default;
+        dhxUseEms: "=", // Optional... If width and height is in ems. Px is   default;
+        dhxHandlers: '='
       },
       link: function (scope, element, attrs, layoutCtrl) {
         $(element).empty();
@@ -736,7 +745,7 @@ angular.module('dhxDirectives')
         for (var i = 0; i < scope.panes.length; i++) {
           layout.cells(letters[i]).appendObject(scope.panes[i].jqElem[0]);
         }
-
+        DhxUtils.attachDhxHandlers(layout, scope.dhxHandlers);
         DhxUtils.dhxUnloadOnScopeDestroy(scope, layout);
       }
     };
@@ -777,7 +786,7 @@ angular.module('dhxDirectives')
  * Created by Emanuil on 09/02/2016.
  */
 angular.module('dhxDirectives')
-  .directive('dhxMessage', function factory(DhxUtils) {
+  .directive('dhxMessage', function factory($timeout, DhxUtils) {
     var nextMsgId = (function () {
       var _internalCounter = DhxUtils.createCounter();
       return function () {
@@ -809,10 +818,11 @@ angular.module('dhxDirectives')
         dhxTitle: '@',
         dhxOk: '@',
         // Just for Confirm
-        dhxCancel: '@'
+        dhxCancel: '@',
+        dhxInvokeOnCreate: '='
       },
       link: function (scope/*, element, attrs*/) {
-        scope.dhxInvoker = function () {
+        var invoker = function () {
           var instObj = {};
 
           // Not bothering with checks. Relying on the user providing just the data that's
@@ -842,6 +852,10 @@ angular.module('dhxDirectives')
             }
           );
         };
+        scope.dhxInvoker !== undefined ? scope.dhxInvoker = invoker : '';
+        if(scope.dhxInvokeOnCreate) {
+          invoker();
+        }
       }
     };
   });
@@ -871,11 +885,14 @@ angular.module('dhxDirectives')
          * if dhxRefresh is changed the popup is refresh. It reappears if dhxShow is true,
          * else hides.
          */
+        dhxHandlers: '=',
         dhxRefresh: '='
       },
       link: function (scope, element/*, attrs, popupCtrl*/) {
         //noinspection JSPotentiallyInvalidConstructorUsage
         var popup = new dhtmlXPopup();
+        DhxUtils.attachDhxHandlers(popup, scope.dhxHandlers);
+
         scope.dhxPopup ? scope.dhxPopup = popup : '';
         var parent = $(element[0]).parent()[0];
         var child = element.detach();
@@ -924,7 +941,8 @@ angular.module('dhxDirectives')
         dhxWidth: "=", // Optional... Default is 100%. If set, use ems or pixels.
         dhxHeight: "=", // Mandatory.
         dhxUseEms: "=", // Optional... If width and height is in ems. Px is default;
-        dhxDisableScroll: "="
+        dhxDisableScroll: "=",
+        dhxHandlers: '='
       },
       link: function (scope, element) {
         var dim = (scope.dhxUseEms ? 'em' : 'px');
@@ -937,6 +955,7 @@ angular.module('dhxDirectives')
 
         //noinspection JSPotentiallyInvalidConstructorUsage
         var tabbar = new dhtmlXTabBar(element[0]);
+        DhxUtils.attachDhxHandlers(tabbar, scope.dhxHandlers);
         scope.dhxObj ? scope.dhxObj = tabbar : '';
         scope.panes.forEach(function (tabInfo) {
           tabbar.addTab(
@@ -1099,10 +1118,12 @@ angular.module('dhxDirectives')
         }
       },
       scope: {
+        dhxHandlers: '='
       },
       link: function (scope, element, attrs, windowsCtrl) {
         //noinspection JSPotentiallyInvalidConstructorUsage
         var windows = new dhtmlXWindows();
+        DhxUtils.attachDhxHandlers(windows, scope.dhxHandlers);
         windows.attachViewportTo(windowsCtrl.getContainer());
 
         windowsCtrl
@@ -1117,6 +1138,8 @@ angular.module('dhxDirectives')
               conf.width,
               conf.height
             );
+
+            conf.header != undefined ? (!conf.header ? win.hideHeader() : '') : '';
             conf.center !== undefined ? (conf.center ? win.center() : '') : '';
             conf.keep_in_viewport !== undefined ? win.keepInViewport(!!conf.keep_in_viewport) : '';
             conf.showInnerScroll !== undefined ?  (conf.showInnerScroll ? win.showInnerScroll() : '') : '';
@@ -1145,6 +1168,7 @@ angular.module('dhxDirectives')
       scope: {
         dhxCenter: '=',
         dhxHeight: '=',
+        dhxHeader: '=',
         dhxKeepInViewport: '=',
         dhxShowInnerScroll: '=',
         dhxLeft: '=',
@@ -1166,6 +1190,7 @@ angular.module('dhxDirectives')
           config: {
             center: scope.dhxCenter,
             height: scope.dhxHeight,
+            header: scope.dhxHeader,
             keep_in_viewport: scope.dhxKeepInViewport,
             showInnerScroll: scope.dhxShowInnerScroll,
             left: scope.dhxLeft,
