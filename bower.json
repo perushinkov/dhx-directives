@@ -1,6 +1,6 @@
 {
   "name": "dhx-directives",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "dependencies": {
     "angular": "^1.4.0",
     "jquery": "~2.2.0"

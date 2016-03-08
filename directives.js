@@ -69,8 +69,9 @@ angular.module('dhxDirectives')
         //noinspection JSPotentiallyInvalidConstructorUsage
         var chart = new dhtmlXChart(descriptor);
 
-        DhxUtils.attachDhxHandlers(chart, scope.dhxHandlers);
+
         chart.parse(scope.dhxData, 'json');
+        DhxUtils.attachDhxHandlers(chart, scope.dhxHandlers);
         DhxUtils.dhxUnloadOnScopeDestroy(scope, chart);
       }
     };
@@ -108,11 +109,8 @@ angular.module('dhxDirectives')
 
     var tagName = element.prop('tagName').substr(6).toLowerCase();
     if (tagName !== 'option') {
-      obj.type = tagName;
+      obj.type = tagName.split('-').join('');
     }
-    //} else {
-    //  obj = json;
-    //}
 
     var newElem = $('<JSON>');
     newElem.attr('savedTagName', tagName);
@@ -153,6 +151,7 @@ angular.module('dhxDirectives')
         var data = linkFn(scope, element).list;
         element.empty();
         var div = $('<div></div>').appendTo(element[0]);
+        console.log(JSON.stringify(data));
         var form = new dhtmlXForm(div[0], data);
         form.enableLiveValidation(true);
         form.validate();
@@ -163,7 +162,19 @@ angular.module('dhxDirectives')
     };
   });
 
-
+  module.directive('dhxFBlock', function factory() {
+    return {
+      restrict: 'E',
+      scope: {
+        dhxDisabled: '=',
+        dhxHidden: '=',
+        dhxList: '=',
+        dhxName: '@',
+        dhxWidth: '='
+      },
+      link: linkFn
+    };
+  });
   module.directive('dhxFButton', function factory() {
     return {
       restrict: 'E',
@@ -633,8 +644,6 @@ angular.module('dhxDirectives')
             scope.dhxInitWidths ? grid.setInitWidths(scope.dhxInitWidths): '';
             scope.dhxInitWidthsP ? grid.setInitWidthsP(scope.dhxInitWidthsP): '';
 
-            DhxUtils.attachDhxHandlers(grid, scope.dhxHandlers);
-
             // Letting controller add configurations before data is parsed
             if (scope.dhxConfigureFunc) {
               scope.dhxConfigureFunc(grid);
@@ -656,7 +665,7 @@ angular.module('dhxDirectives')
             if (scope.dhxOnDataLoaded) {
               scope.dhxOnDataLoaded(grid);
             }
-
+            DhxUtils.attachDhxHandlers(grid, scope.dhxHandlers);
             DhxUtils.dhxUnloadOnScopeDestroy(scope, grid);
           };
           scope.$watch('dhxVersionId', function (/*newVal, oldVal*/) {
@@ -891,7 +900,7 @@ angular.module('dhxDirectives')
       link: function (scope, element/*, attrs, popupCtrl*/) {
         //noinspection JSPotentiallyInvalidConstructorUsage
         var popup = new dhtmlXPopup();
-        DhxUtils.attachDhxHandlers(popup, scope.dhxHandlers);
+
 
         scope.dhxPopup ? scope.dhxPopup = popup : '';
         var parent = $(element[0]).parent()[0];
@@ -910,7 +919,7 @@ angular.module('dhxDirectives')
         scope.dhxShow ? popup.show() : popup.hide();
         scope.$watch('dhxShow', renderPopup);
         scope.$watch('dhxRefresh', renderPopup);
-
+        DhxUtils.attachDhxHandlers(popup, scope.dhxHandlers);
         DhxUtils.dhxUnloadOnScopeDestroy(scope, popup);
       }
     };
@@ -948,14 +957,13 @@ angular.module('dhxDirectives')
         var dim = (scope.dhxUseEms ? 'em' : 'px');
         var height = scope.dhxHeight ? (scope.dhxHeight + dim) : '100%';
         var width = scope.dhxWidth ? (scope.dhxWidth + dim) : '100%';
-
         element.css('width', width);
         element.css('height', height);
         element.css('display', 'block');
 
         //noinspection JSPotentiallyInvalidConstructorUsage
         var tabbar = new dhtmlXTabBar(element[0]);
-        DhxUtils.attachDhxHandlers(tabbar, scope.dhxHandlers);
+
         scope.dhxObj ? scope.dhxObj = tabbar : '';
         scope.panes.forEach(function (tabInfo) {
           tabbar.addTab(
@@ -966,7 +974,7 @@ angular.module('dhxDirectives')
           tabbar.tabs(tabInfo.id).showInnerScroll();
           tabInfo.selected ? tabbar.tabs(tabInfo.id).setActive() : '';
         });
-
+        DhxUtils.attachDhxHandlers(tabbar, scope.dhxHandlers);
         DhxUtils.dhxUnloadOnScopeDestroy(scope, tabbar);
       }
     };
@@ -1054,28 +1062,28 @@ angular.module('dhxDirectives')
 
         scope.dhxTree = tree;
 
-        DhxUtils.attachDhxHandlers(tree, scope.dhxHandlers);
-
         // Additional optional configuration
         tree.enableCheckBoxes(scope.dhxEnableCheckBoxes);
+
         tree.enableDragAndDrop(scope.dhxEnableDragAndDrop);
         tree.enableHighlighting(scope.dhxEnableHighlighting);
         tree.enableThreeStateCheckboxes(scope.dhxEnableThreeStateCheckboxes);
         tree.enableTreeImages(scope.dhxEnableTreeImages);
         tree.enableTreeLines(scope.dhxEnableTreeLines);
-
         // Letting controller add configurations before data is parsed
+
         if (scope.dhxConfigureFunc) {
           scope.dhxConfigureFunc(tree);
         }
-
         // Finally parsing data
         tree.parse(scope.dhxJsonData, "json");
 
         // Letting controller do data manipulation after data has been loaded
+
         if (scope.dhxOnDataLoaded) {
           scope.dhxOnDataLoaded(tree);
         }
+        DhxUtils.attachDhxHandlers(tree, scope.dhxHandlers);
         DhxUtils.dhxUnloadOnScopeDestroy(scope, tree);
       }
     };
@@ -1123,9 +1131,7 @@ angular.module('dhxDirectives')
       link: function (scope, element, attrs, windowsCtrl) {
         //noinspection JSPotentiallyInvalidConstructorUsage
         var windows = new dhtmlXWindows();
-        DhxUtils.attachDhxHandlers(windows, scope.dhxHandlers);
         windows.attachViewportTo(windowsCtrl.getContainer());
-
         windowsCtrl
           .getWindowInfos()
           .forEach(function (windowInfo) {
@@ -1157,6 +1163,8 @@ angular.module('dhxDirectives')
             var domElem = windowInfo.elem[0];
             win.attachObject(domElem);
           });
+
+        DhxUtils.attachDhxHandlers(windows, scope.dhxHandlers);
         DhxUtils.dhxUnloadOnScopeDestroy(scope, windows);
       }
     };
