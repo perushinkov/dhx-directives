@@ -1057,7 +1057,7 @@ angular.module('dhxDirectives')
           parent: element[0],
           skin: "dhx_skyblue",
           checkbox: true,
-          image_path: DhxUtils.getImagePath()
+          image_path: DhxUtils.getImagePath() + 'dhxtree_skyblue/'
         });
 
         scope.dhxTree = tree;
@@ -1234,7 +1234,7 @@ angular.module('dhxDirectives')
  */
 angular.module('dhxDirectives')
   .factory('DhxUtils', [function () {
-    var _imgPath = "bower_components/dhtmlx/imgs/dhxtree_skyblue/";
+    var _imgPath = "bower_components/dhtmlx/imgs/";
 
     /**
      * @param dhxObject
