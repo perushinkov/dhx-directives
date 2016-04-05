@@ -614,7 +614,9 @@ angular.module('dhxDirectives')
          * Optional
          */
         dhxHandlers: '=',
-        dhxVersionId: '='
+        dhxVersionId: '=',
+
+        dhxContextMenu: '='
       },
       compile: function compile(/*tElement, tAttrs, transclude*/) {
         return function (scope, element/*, attrs*/) {
@@ -623,19 +625,20 @@ angular.module('dhxDirectives')
             $('<div></div>').appendTo(element[0]);
             var rootElem = element.children().first();
 
-            var width = scope.dhxMaxWidth ? (scope.dhxMaxWidth + 'px') : '100%';
-            var height = scope.dhxMaxHeight ? (scope.dhxMaxHeight + 'px') : '100%';
-            //rootElem.css('max-width', width);
-            rootElem.css('width', width);
-            rootElem.css('height', height);
-            //rootElem.css('max-height', height);
+            scope.dhxMaxWidth ? rootElem.css('width', scope.dhxMaxWidth + 'px') : '';
+            scope.dhxMaxHeight ? rootElem.css('height', scope.dhxMaxHeight + 'px') : '';
 
             //noinspection JSPotentiallyInvalidConstructorUsage
             var grid = new dhtmlXGridObject(rootElem[0]);
             grid.setImagePath(DhxUtils.getImagePath());
 
-            grid.enableAutoHeight(!!scope.dhxMaxHeight, scope.dhxMaxHeight, true);
-            grid.enableAutoWidth(!!scope.dhxMaxWidth, scope.dhxMaxWidth, true);
+            scope.dhxContextMenu ? grid.enableContextMenu(scope.dhxContextMenu) : '';
+            scope.$watch(
+              "dhxContextMenu",
+              function handle( newValue, oldValue ) {
+                grid.enableContextMenu(newValue);
+              }
+            );
 
             scope.dhxHeader ? grid.setHeader(scope.dhxHeader): '';
             scope.dhxColTypes ? grid.setColTypes(scope.dhxColTypes): '';
@@ -665,6 +668,11 @@ angular.module('dhxDirectives')
             if (scope.dhxOnDataLoaded) {
               scope.dhxOnDataLoaded(grid);
             }
+
+            grid.enableAutoHeight(!!scope.dhxMaxHeight ? scope.dhxMaxHeight : true);
+            grid.enableAutoWidth(!!scope.dhxMaxWidth ? scope.dhxMaxWidth : true);
+
+            grid.setSizes();
             DhxUtils.attachDhxHandlers(grid, scope.dhxHandlers);
             DhxUtils.dhxUnloadOnScopeDestroy(scope, grid);
           };
@@ -724,11 +732,11 @@ angular.module('dhxDirectives')
         var width = scope.dhxWidth? (scope.dhxWidth + dim) : '100%';
 
         //rootElem.css('max-width', width);
-        rootElem.css('width', width);
-        rootElem.css('height', height);
-        rootElem.css('padding', '0px');
-        rootElem.css('margin', '0px');
-        rootElem.css('overflow', 'hidden');
+        rootElem.css('width', /*width*/ '100%');
+        rootElem.css('height', /*height*/ '100%');
+        //rootElem.css('padding', '0px');
+        //rootElem.css('margin', '0px');
+        //rootElem.css('overflow', 'hidden');
         rootElem.css('display', 'block');
 
         //noinspection JSPotentiallyInvalidConstructorUsage
@@ -787,6 +795,87 @@ angular.module('dhxDirectives')
             fix_size: scope.dhxFixSize
           }
         });
+      }
+    };
+  });
+//"use strict";
+/**
+ * Created by Emanuil on 08/02/2016.
+ *
+ * Useful links
+ * @link http://docs.dhtmlx.com/menu__object_constructor.html#specifyingmenuitems
+ * @link http://docs.dhtmlx.com/api__link__dhtmlxmenu_loadstruct.html
+ * @link http://docs.dhtmlx.com/api__dhtmlxmenu_loadfromhtml.html
+ *
+ */
+angular.module('dhxDirectives')
+  .directive('dhxMenu', function factory(DhxUtils) {
+    return {
+      restrict: 'E',
+      require: 'dhxMenu',
+      controller: function () {
+      },
+      scope: {
+        dhxMenu: '=',
+        dhxHandlers: '=',
+        dhxOnClick: '=',
+        dhxOnLoadedAndRendered: '=',
+        /**
+         * if (loadFromHtml)
+         *  LoadFromHtml_fromDomChildren(),
+         * else if (loadXMLFromDom)
+         *  loadStruct(xmlFromChildren)
+         * else
+         *  loadStruct(XmlJsonData)
+         **/
+        dhxLoadFromHtml: '=',
+        dhxLoadXmlFromDom: '=',
+        dhxXmlJsonData: '=',
+
+        dhxContextMenuMode: '=',
+        dhxContextZones: '=',
+        dhxContextAsParent: '='
+      },
+      link: function (scope, element/*, attrs, menuCtrl*/) {
+        //noinspection JSPotentiallyInvalidConstructorUsage
+
+        var domChild = $(element).children().first().detach();
+
+        var menu = new dhtmlXMenuObject(scope.dhxContextMenuMode ? undefined : element[0]);
+        scope.dhxMenu ? scope.dhxMenu = menu : '';
+
+        scope.dhxContextMenuMode ? menu.renderAsContextMenu() : undefined;
+
+        if (scope.dhxContextZones) {
+          scope.dhxContextZones.forEach(function (zone) {
+            menu.addContextZone(zone);
+          });
+        }
+
+        if (scope.dhxContextAsParent) {
+          menu.addContextZone($(element).parent()[0]);
+        }
+
+        if (scope.dhxOnClick) {
+          DhxUtils.attachDhxHandlers(menu, [
+            {
+              type: 'onClick',
+              handler: scope.dhxOnClick
+            }
+          ]);
+        }
+        if (scope.dhxLoadFromHtml) {
+          menu.loadFromHTML(domChild[0], false, scope.dhxOnLoadedAndRendered);
+        } else if (scope.dhxLoadXmlFromDom) {
+          menu.loadStruct(domChild[0].outerHTML, scope.dhxOnLoadedAndRendered);
+        } else if (scope.dhxXmlJsonData) {
+          menu.loadStruct(scope.dhxXmlJsonData);
+        } else {
+          console.error('Please specify one of dhx-load-from-html or dhx-load-from-dom or dhx-xml-json-data');
+        }
+
+        DhxUtils.attachDhxHandlers(menu, scope.dhxHandlers);
+        DhxUtils.dhxUnloadOnScopeDestroy(scope, menu);
       }
     };
   });
@@ -955,14 +1044,17 @@ angular.module('dhxDirectives')
       },
       link: function (scope, element) {
         var dim = (scope.dhxUseEms ? 'em' : 'px');
-        var height = scope.dhxHeight ? (scope.dhxHeight + dim) : '100%';
-        var width = scope.dhxWidth ? (scope.dhxWidth + dim) : '100%';
-        element.css('width', width);
-        element.css('height', height);
+        var height = scope.dhxHeight ? (scope.dhxHeight + dim) : null;
+        var width = scope.dhxWidth ? (scope.dhxWidth + dim) : null;
+        height ? element.css('width', width) : '';
+        width ? element.css('height', height) : '';
         element.css('display', 'block');
 
         //noinspection JSPotentiallyInvalidConstructorUsage
         var tabbar = new dhtmlXTabBar(element[0]);
+        if(!height && !width) {
+          tabbar.enableAutoReSize();
+        }
 
         scope.dhxObj ? scope.dhxObj = tabbar : '';
         scope.panes.forEach(function (tabInfo) {
@@ -1049,7 +1141,9 @@ angular.module('dhxDirectives')
          * customization power.
          */
         dhxConfigureFunc: '=',
-        dhxOnDataLoaded: '='
+        dhxOnDataLoaded: '=',
+
+        dhxContextMenu: '='
       },
       link: function (scope, element/*, attrs, treeCtrl*/) {
         //noinspection JSPotentiallyInvalidConstructorUsage
@@ -1060,7 +1154,15 @@ angular.module('dhxDirectives')
           image_path: DhxUtils.getImagePath() + 'dhxtree_skyblue/'
         });
 
-        scope.dhxTree = tree;
+        scope.dhxTree ? scope.dhxTree = tree : '';
+
+        scope.dhxContextMenu ? tree.enableContextMenu(scope.dhxContextMenu) : '';
+        scope.$watch(
+          "dhxContextMenu",
+          function handle( newValue) {
+            tree.enableContextMenu(newValue);
+          }
+        );
 
         // Additional optional configuration
         tree.enableCheckBoxes(scope.dhxEnableCheckBoxes);
