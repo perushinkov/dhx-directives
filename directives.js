@@ -625,12 +625,19 @@ angular.module('dhxDirectives')
             $('<div></div>').appendTo(element[0]);
             var rootElem = element.children().first();
 
-            scope.dhxMaxWidth ? rootElem.css('width', scope.dhxMaxWidth + 'px') : '';
-            scope.dhxMaxHeight ? rootElem.css('height', scope.dhxMaxHeight + 'px') : '';
+            var width = scope.dhxMaxWidth ? (scope.dhxMaxWidth + 'px') : '100%';
+            var height = scope.dhxMaxHeight ? (scope.dhxMaxHeight + 'px') : '100%';
+
+            rootElem.css('width', width);
+            rootElem.css('height', height);
 
             //noinspection JSPotentiallyInvalidConstructorUsage
             var grid = new dhtmlXGridObject(rootElem[0]);
             grid.setImagePath(DhxUtils.getImagePath());
+
+            grid.enableAutoHeight(!!scope.dhxMaxHeight, scope.dhxMaxHeight, true);
+            grid.enableAutoWidth(!!scope.dhxMaxWidth, scope.dhxMaxWidth, true);
+
 
             scope.dhxContextMenu ? grid.enableContextMenu(scope.dhxContextMenu) : '';
             scope.$watch(
@@ -669,10 +676,6 @@ angular.module('dhxDirectives')
               scope.dhxOnDataLoaded(grid);
             }
 
-            grid.enableAutoHeight(!!scope.dhxMaxHeight ? scope.dhxMaxHeight : true);
-            grid.enableAutoWidth(!!scope.dhxMaxWidth ? scope.dhxMaxWidth : true);
-
-            grid.setSizes();
             DhxUtils.attachDhxHandlers(grid, scope.dhxHandlers);
             DhxUtils.dhxUnloadOnScopeDestroy(scope, grid);
           };
@@ -727,16 +730,15 @@ angular.module('dhxDirectives')
         var rootElem = element.children().first();
 
         var dim = (scope.dhxUseEms ? 'em' : 'px');
-        var height = scope.dhxHeight? (scope.dhxHeight + dim) : console.warn('Please set dhx-layout height!');
         //TODO: Come up with a way to do 100% height (Within current container)
+        var height = scope.dhxHeight? (scope.dhxHeight + dim) : console.warn('Please set dhx-layout height!');
         var width = scope.dhxWidth? (scope.dhxWidth + dim) : '100%';
 
-        //rootElem.css('max-width', width);
-        rootElem.css('width', /*width*/ '100%');
-        rootElem.css('height', /*height*/ '100%');
-        //rootElem.css('padding', '0px');
-        //rootElem.css('margin', '0px');
-        //rootElem.css('overflow', 'hidden');
+        rootElem.css('width', width);
+        rootElem.css('height', height);
+        rootElem.css('padding', '0px');
+        rootElem.css('margin', '0px');
+        rootElem.css('overflow', 'hidden');
         rootElem.css('display', 'block');
 
         //noinspection JSPotentiallyInvalidConstructorUsage
@@ -950,7 +952,8 @@ angular.module('dhxDirectives')
             }
           );
         };
-        scope.dhxInvoker !== undefined ? scope.dhxInvoker = invoker : '';
+        //scope.dhxInvoker !== undefined ? scope.dhxInvoker = invoker : '';
+        scope.dhxInvoker = invoker;
         if(scope.dhxInvokeOnCreate) {
           invoker();
         }
@@ -1044,17 +1047,15 @@ angular.module('dhxDirectives')
       },
       link: function (scope, element) {
         var dim = (scope.dhxUseEms ? 'em' : 'px');
-        var height = scope.dhxHeight ? (scope.dhxHeight + dim) : null;
-        var width = scope.dhxWidth ? (scope.dhxWidth + dim) : null;
-        height ? element.css('width', width) : '';
-        width ? element.css('height', height) : '';
+
+        var height = scope.dhxHeight ? (scope.dhxHeight + dim) : '100%';
+        var width = scope.dhxWidth ? (scope.dhxWidth + dim) : '100%';
+        element.css('width', width);
+        element.css('height', height);
         element.css('display', 'block');
 
         //noinspection JSPotentiallyInvalidConstructorUsage
         var tabbar = new dhtmlXTabBar(element[0]);
-        if(!height && !width) {
-          tabbar.enableAutoReSize();
-        }
 
         scope.dhxObj ? scope.dhxObj = tabbar : '';
         scope.panes.forEach(function (tabInfo) {
